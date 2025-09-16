@@ -1,128 +1,118 @@
-import { CardIcon, HandIcon } from "./components/CardIcon";
-import { useState } from "react";
+﻿import React, { useMemo, useState } from "react";
+import BTN_OPEN_100BB from "./btnRange.js";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const RANKS = ["A","K","Q","J","T","9","8","7","6","5","4","3","2"];
+const SUITS = ["s","h","d","c"];
 
-function Module({ name, choices, extraControls }) {
-  const [scenario, setScenario] = useState("");
-  const [action, setAction] = useState("");
-  const [reason, setReason] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [params, setParams] = useState({ opener: "BTN", defender: "SB", pos: "CO" });
+function dealHand() {
+  const deck = [];
+  for (const r of RANKS) for (const s of SUITS) deck.push({rank:r, suit:s});
+  const i = Math.floor(Math.random() * deck.length);
+  const c1 = deck.splice(i,1);
+  const j = Math.floor(Math.random() * deck.length);
+  const c2 = deck.splice(j,1);
+  return [c1,c2];
+}
 
-  async function genScenario() {
-    const query =
-      name === "preflop_open"
-        ? `?opener=${encodeURIComponent(params.pos)}`
-        : name === "preflop_3bet"
-        ? `?opener=${encodeURIComponent(params.opener)}&defender=${encodeURIComponent(params.defender)}`
-        : "";
-    const r = await fetch(`${API}/scenario/${name}${query}`);
-    const d = await r.json();
-    setScenario(d.text);
-    setFeedback("");
+function comboKey(c1, c2) {
+  const i1 = RANKS.indexOf(c1.rank);
+  const i2 = RANKS.indexOf(c2.rank);
+  if (i1 === i2) return c1.rank + c2.rank; // pairs
+  const high = i1 < i2 ? c1 : c2;
+  const low  = i1 < i2 ? c2 : c1;
+  const suited = c1.suit === c2.suit ? "s" : "o";
+  return high.rank + low.rank + suited; // e.g., "AKs", "QTo"
+}
+
+export default function App() {
+  const [[c1,c2], setHand] = useState(dealHand());
+  const [result, setResult] = useState(null); // "correct" | "wrong"
+  const [lastKey, setLastKey] = useState("");
+  const [showChart, setShowChart] = useState(false);
+  const [score, setScore] = useState({ correct: 0, total: 0 });
+
+  const key = useMemo(()=>comboKey(c1,c2), [c1,c2]);
+  const isOpen = BTN_OPEN_100BB[key] === true;
+
+  function answer(choice) {
+    const correct = (choice === "Raise" && isOpen) || (choice === "Fold" && !isOpen);
+    setResult(correct ? "correct" : "wrong");
+    setLastKey(key);
+    setScore(s => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
+    setShowChart(!correct);
   }
 
-  async function getFeedback() {
-    const r = await fetch(`${API}/feedback`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scenario_id: "n/a",
-        module: name,
-        action,
-        reasoning: reason
-      }),
-    });
-    const d = await r.json();
-    setFeedback(d.feedback);
+  function nextHand() {
+    const [n1,n2] = dealHand();
+    setHand([n1,n2]);
+    setResult(null);
+    setShowChart(false);
   }
 
   return (
-    <div className="module">
-      {extraControls && (
-        <div className="row wrap">
-          {name === "preflop_open" && (
-            <>
-              <label>Position</label>
-              <select
-                value={params.pos}
-                onChange={e => setParams(p => ({ ...p, pos: e.target.value }))}
-              >
-                {["UTG/LJ","HJ","CO","BTN","SB"].map(p => <option key={p}>{p}</option>)}
-              </select>
-            </>
-          )}
-          {name === "preflop_3bet" && (
-            <>
-              <label>Opener</label>
-              <select
-                value={params.opener}
-                onChange={e => setParams(p => ({ ...p, opener: e.target.value }))}
-              >
-                {["UTG/LJ","HJ","CO","BTN","SB"].map(p => <option key={p}>{p}</option>)}
-              </select>
-              <label>Defender</label>
-              <select
-                value={params.defender}
-                onChange={e => setParams(p => ({ ...p, defender: e.target.value }))}
-              >
-                {["UTG/LJ","HJ","CO","BTN","SB"].map(p => <option key={p}>{p}</option>)}
-              </select>
-            </>
-          )}
-        </div>
-      )}
+    <div className="wrap">
+      <header className="head">
+        <div>6‑Max • 100bb • BTN RFI</div>
+        <div>Score: {score.correct}/{score.total}</div>
+      </header>
 
-      <div className="row">
-        <button onClick={genScenario}>Generate scenario</button>
+      <div className="hand">
+        <span className="card">{c1.rank}{c1.suit.toUpperCase()}</span>
+        <span className="card">{c2.rank}{c2.suit.toUpperCase()}</span>
+        {result === "correct" && <span className="mark good" title="Correct">✔</span>}
+        {result === "wrong" && <span className="mark bad" title="Wrong">✘</span>}
       </div>
 
-      <pre className="scenario">{scenario || "Click to generate a scenario."}</pre>
-
-      <div className="row">
-        <label>Action</label>
-        <select value={action} onChange={e => setAction(e.target.value)}>
-          <option value="">Choose�</option>
-          {choices.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      <div className="actions">
+        <button className="primary" onClick={()=>answer("Raise")}>Raise</button>
+        <button onClick={()=>answer("Fold")}>Fold</button>
+        <button onClick={nextHand}>Next</button>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={showChart}
+            onChange={e=>setShowChart(e.target.checked)}
+          /> Show chart
+        </label>
       </div>
 
-      <textarea
-        placeholder="Reasoning (ranges, blockers, MDF)�"
-        value={reason}
-        onChange={e => setReason(e.target.value)}
-      />
-      <button onClick={getFeedback} disabled={!action}>Get feedback</button>
-      <pre className="feedback">{feedback}</pre>
+      {showChart && <RangeChart highlight={lastKey} />}
+
+      <footer className="foot">
+        Tip: Chart auto‑opens when an answer is wrong. Toggle “Show chart” to keep it visible. 
+      </footer>
     </div>
   );
 }
 
-export default function App() {
+function RangeChart({ highlight }) {
   return (
-    <div className="container">
-      <h1>Poker Trainer</h1>
-
-      <details open><summary>Bluff-Catching</summary>
-        <Module name="bluffcatch" choices={["Call","Fold","Raise"]} />
-      </details>
-
-      <details><summary>Thin Value</summary>
-        <Module name="thinvalue" choices={["Check","25�50%","66%+","Overbet"]} />
-      </details>
-
-      <details><summary>3-Bet Pots</summary>
-        <Module name="threebet" choices={["Call","Fold","Raise/Jam"]} />
-      </details>
-
-      <details><summary>Preflop Open (RFI)</summary>
-        <Module name="preflop_open" choices={["Open","Fold","Open 2.2�2.7bb","SB 3bb"]} extraControls />
-      </details>
-
-      <details><summary>Preflop 3-Bet</summary>
-        <Module name="preflop_3bet" choices={["3-Bet","Call","Fold","size guidance"]} extraControls />
-      </details>
+    <div className="chart">
+      <div className="grid">
+        {RANKS.map((r1, i) => (
+          <div className="row" key={r1}>
+            {RANKS.map((r2, j) => {
+              let k;
+              if (i === j) k = r1 + r2;           // pair
+              else if (i < j) k = r1 + r2 + "s";  // suited above diagonal
+              else k = r2 + r1 + "o";             // offsuit below diagonal
+              const open = BTN_OPEN_100BB[k] === true;
+              const isHL = k === highlight;
+              const cls = `cell ${open ? "open" : "fold"} ${isHL ? "hl" : ""}`;
+              return (
+                <div key={k} className={cls} title={k}>
+                  {k}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="legend">
+        <span className="box open"></span> Open
+        <span className="box fold"></span> Fold
+        <span className="box hl"></span> Current hand
+      </div>
     </div>
   );
 }

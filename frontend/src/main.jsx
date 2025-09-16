@@ -1,6 +1,11 @@
-import { CardIcon, HandIcon } from "./components/CardIcon";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
-import "./styles.css";
-createRoot(document.getElementById("root")).render(<App />);
+import "./app.css";
+
+const rootEl = document.getElementById("root");
+createRoot(rootEl).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
