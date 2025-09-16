@@ -103,7 +103,7 @@ export default function App() {
   return (
     <div className="container">
       <h1>Poker Trainer</h1>
-<div style={{marginBottom: 12}}><HandIcon cards="Ah Kh" size={32} fourColor /></div>
+<div style={{ marginBottom: 12}}><HandIcon cards="Ah Kh" size={36} fourColor /></div>
       <details open><summary>Bluff-Catching</summary>
         <Module name="bluffcatch" choices={["Call","Fold","Raise"]} />
       </details>

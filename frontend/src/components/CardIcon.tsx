@@ -23,16 +23,16 @@ d: "#1976d2", // diamond: blue
 c: "#2e7d32", // club: green
 };
 
-// Normalize rank: map "T" -> "10", keep others uppercase
+// Normalize rank: keep single letters; only map T -> 10
 function normRank(r: string) {
-const up = r?.toUpperCase?.() ?? "";
+const up = (r || "").toUpperCase();
 return up === "T" ? "10" : up;
 }
 
 export function CardIcon({
 code, // e.g., "Ah", "Td", "7c"
-size = 24, // font-size in px
-fourColor = false,
+size = 28, // bigger default so symbols are obvious
+fourColor = true,
 bold = true,
 style,
 }: {
@@ -50,8 +50,9 @@ const colorMap = fourColor ? suitColor4 : suitColor2;
 return (
 <span
 style={{
+// general text stack; suit-specific span below forces a symbol/emoji stack
 fontFamily:
-"'Segoe UI Symbol', 'Apple Color Emoji', 'Noto Color Emoji', system-ui, sans-serif",
+"system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 fontWeight: bold ? 700 : 500,
 fontSize: size,
 lineHeight: 1,
@@ -59,22 +60,33 @@ color: colorMap[s],
 display: "inline-flex",
 alignItems: "center",
 gap: 2,
+textTransform: "none",
+letterSpacing: "0.5px",
 ...style,
 }}
 aria-label={r + suitChar[s]}
 title={r + suitChar[s]}
 >
 <span>{r}</span>
-<span>{suitChar[s]}</span>
+<span
+style={{
+// ensure a font that contains suit glyphs is used for the symbol
+fontFamily:
+"'Segoe UI Symbol','Apple Color Emoji','Noto Color Emoji',system-ui,sans-serif",
+fontFeatureSettings: "normal",
+}}
+>
+{suitChar[s]}
+</span>
 </span>
 );
 }
 
 export function HandIcon({
-cards, // e.g., "Ah Kh" or ["Ah","Kh"]
-size = 24,
-gap = 8,
-fourColor = false,
+cards, // "Ah Kh" or ["Ah","Kh"]
+size = 28,
+gap = 10,
+fourColor = true,
 bold = true,
 style,
 }: {
@@ -85,7 +97,7 @@ fourColor?: boolean;
 bold?: boolean;
 style?: React.CSSProperties;
 }) {
-const list = Array.isArray(cards) ? cards : cards.trim().split(/\s+/);
+const list = Array.isArray(cards) ? cards : (cards || "").trim().split(/\s+/).filter(Boolean);
 return (
 <span style={{ display: "inline-flex", gap, ...style }}>
 {list.map((c, i) => (
