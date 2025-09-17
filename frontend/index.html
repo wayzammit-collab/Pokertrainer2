@@ -1,12 +1,26 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BTN Open Trainer</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Poker Trainers</title>
+  <style>
+    body { background:#0e1525; color:#e6edf3; font-family:system-ui,Segoe UI,Roboto,Arial; margin:0; }
+    .wrap { max-width:960px; margin:40px auto; padding:0 16px; }
+    h1 { font-weight:600; }
+    .grid { display:flex; flex-wrap:wrap; gap:14px; margin-top:18px; }
+    a.btn { display:inline-block; padding:14px 18px; border-radius:10px; background:#1f2737;
+            color:#e6edf3; text-decoration:none; border:1px solid #2a3245; }
+    a.btn:hover { background:#2a344a; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Poker Trainers</h1>
+    <div class="grid">
+      <a class="btn" href="./trainers/btn-rfi/" rel="noopener">BTN RFI Trainer</a>
+      <!-- Add more trainers here -->
+    </div>
+  </div>
+</body>
 </html>
